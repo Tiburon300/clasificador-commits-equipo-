@@ -87,7 +87,7 @@ def health():
         with conexion() as con, con.cursor() as cur:
             cur.execute("SELECT 1")
             return {"estado": "ok", "base_datos": "ok"}
-    except Exception:
+    except Exception:  # noqa: BLE001
         raise HTTPException(status_code=503, detail="Base de datos no disponible")
 
 @app.post("/clasificar")
