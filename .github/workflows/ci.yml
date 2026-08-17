@@ -68,12 +68,12 @@ jobs:
           python-version: "3.12"
 
       - name: Instalar dependencias
-        run: pip install -r requirements.txt pytest httpx
+        run: pip install -r proyecto-ia/requirements.txt pytest httpx
 
       - name: Inicializar Base de Datos
-        run: psql -h localhost -U postgres -d iadb -f db/init.sql
+        run: psql -h localhost -U postgres -d iadb -f proyecto-ia/db/init.sql
         env:
           PGPASSWORD: claveCI
 
       - name: Ejecutar pruebas con Pytest
-        run: pytest -v
+        run: cd proyecto-ia && pytest -v
