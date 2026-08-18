@@ -11,7 +11,7 @@
 ### Integrantes
 
 * **Jeison Felipe Duarte Porras**
-* **Daniel Emilio Ramirez Gonzales**
+* **Daniel Emilio Ramirez Gonzalez**
 
 ### Perfil de hardware
 
