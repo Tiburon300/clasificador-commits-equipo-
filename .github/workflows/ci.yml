@@ -76,4 +76,7 @@ jobs:
           PGPASSWORD: claveCI
 
       - name: Ejecutar pruebas con Pytest
-        run: cd proyecto-ia && pytest -v
+        working-directory: proyecto-ia
+        env:
+          PYTHONPATH: .
+        run: pytest -v
