@@ -92,3 +92,42 @@ Si una contraseña se filtra, se debe:
    tomar medidas para eliminar el secreto expuesto del historial cuando sea
    necesario.
 6. Evitar almacenar contraseñas directamente en el código fuente.
+
+## Endpoints de la API
+
+| Método | Ruta | Parámetros de Entrada | Respuesta Esperada | Códigos de Error |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/health` | Ninguno | `{"estado":"ok","base_datos":"conectada"}` | `500 Internal Server Error` |
+| `POST` | `/clasificar` | `JSON`: `{"texto": "str", "motor": "eco\|ollama"}` | `JSON`: `{"id": int, "tipo": "str", "motor": "str", ...}` | `400 Bad Request`, `422 Unprocessable` |
+| `GET` | `/inferencias` | Ninguno | `JSON`: Lista con el historial de clasificaciones | `500 Internal Server Error` |
+
+---
+
+## Modelo de Datos
+
+Estructura técnica de la tabla `public.inferencias` en PostgreSQL (`iadb`):
+
+| Campo | Tipo de Dato | Nulable | Valor por Defecto / Llave | Descripción |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `integer` | `not null` | `PRIMARY KEY`, `nextval('inferencias_id_seq'::regclass)` | Identificador único autoincremental de la inferencia. |
+| `fecha` | `timestamp without time zone` | `not null` | `now()` | Fecha y hora exacta en que se registró la inferencia. |
+| `motor` | `character varying(20)` | `not null` | N/A | Motor utilizado para procesar la petición (`eco` u `ollama`). |
+| `modelo` | `character varying(120)` | `not null` | N/A | Versión o nombre del modelo/regla aplicada. |
+| `entrada` | `text` | `not null` | N/A | Mensaje de commit o texto enviado para clasificar. |
+| `salida` | `text` | `not null` | N/A | Resultado de la clasificación devuelto por el motor. |
+| `latencia_ms` | `integer` | `not null` | N/A | Tiempo de ejecución de la inferencia expresado en milisegundos. |
+
+---
+
+## Decisiones de Diseño y Limitaciones
+
+### Decisiones de Arquitectura
+* **Dockerfile Multi-Etapa:** Minimiza el tamaño de la imagen final y elimina herramientas de compilación en el entorno de producción, optimizando seguridad y tiempos de despliegue.
+* **Usuario sin Privilegios en Contenedor:** La aplicación se ejecuta bajo un usuario sin permisos de superusuario dentro del contenedor para mitigar vectores de ataque y escalación de privilegios en el host.
+* **Privilegios Mínimos en Base de Datos:** El rol asignado a la API (`app_ia`) cuenta únicamente con privilegios `SELECT` e `INSERT` sobre la tabla `inferencias`, previniendo modificaciones no autorizadas o borrados de datos (`DROP`/`DELETE`).
+* **Inclusión del Motor Eco:** Ofrece una alternativa ligera y determinista con tiempos de respuesta ultra bajos (~17 ms), ideal para pruebas continuas y contingencias cuando el servicio de LLM no está disponible.
+
+### Limitaciones Conocidas
+* **Latencia del Motor Ollama:** El cómputo del modelo de lenguaje local requiere una carga alta de CPU/VRAM, generando tiempos de respuesta de ~800 ms a 4500 ms en la primera petición (*cold-start*).
+* **Concurrencia Secuencial:** El servicio local de Ollama procesa las inferencias secuencialmente por defecto, lo que puede provocar encolamiento ante ráfagas de tráfico simultáneo.
+* **Persistencia en Nodo Local:** Los datos residen en un volumen de Docker administrado en el host, haciendo indispensable la ejecución periódica del plan de respaldo documentado para garantizar la recuperación ante desastres.
